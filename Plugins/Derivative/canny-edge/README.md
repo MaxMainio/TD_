@@ -7,8 +7,9 @@ Derivative-modified TOP sample that converts an input TOP to grayscale and runs 
 - Takes one TOP input.
 - Downloads the input as `RGBA8Fixed`.
 - Converts RGBA to grayscale before edge detection.
-- Outputs `Mono8Fixed`.
-- Uses the input TOP dimensions.
+- Native output data is `Mono8Fixed`.
+- Honors the Common page `Output Resolution`, `Output Aspect`, and `Pixel Format` settings during final upload.
+- When Common `Pixel Format` is `Use Input`, the edge result is repacked to the connected input TOP's pixel format.
 
 ## Parameters
 
@@ -24,4 +25,5 @@ Requires OpenCV `core` and `imgproc`.
 ## Notes
 
 - Do not rename `Apperturesize` or its label without accepting saved-project compatibility impact.
+- Common page `Fill Viewer` and `Viewer Smoothness` are handled by TouchDesigner at the viewer level.
 - Derivative license headers must be preserved when editing or sharing this code.

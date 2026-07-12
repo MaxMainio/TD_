@@ -6,8 +6,9 @@ Derivative-modified TOP sample that limits the number of color levels in an inpu
 
 - Takes one TOP input.
 - Cooks in CPU memory.
-- Uses the input TOP dimensions.
-- Outputs an RGBA8-style buffer matching the downloaded input format.
+- Processes internally as BGRA8 CPU pixels.
+- Honors the Common page `Output Resolution`, `Output Aspect`, and `Pixel Format` settings during final upload.
+- When Common `Pixel Format` is `Use Input`, the output is repacked to the connected input TOP's pixel format.
 
 ## Parameters
 
@@ -22,4 +23,5 @@ This plugin uses the TouchDesigner C++ headers and standard C++ only. It does no
 ## Notes
 
 - The visible label `Filter` is generic and may be collision-prone for broader distribution. Do not rename it without accepting saved-project compatibility impact.
+- Common page `Fill Viewer` and `Viewer Smoothness` are handled by TouchDesigner at the viewer level.
 - Derivative license headers must be preserved when editing or sharing this code.

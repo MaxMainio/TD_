@@ -14,6 +14,7 @@
 
 #include "CannyEdgeTOP.h"
 #include "Parameters.h"
+#include "../../shared/TOPOutputHelper.h"
 
 #include <cassert>
 #include <cstring>
@@ -93,6 +94,11 @@ CannyEdgeTOP::execute(TD::TOP_Output* output, const TD::OP_Inputs* inputs, void*
 	if (myFrame->empty())
 		return;
 
+	const TD::OP_TOPInput* top = inputs->getInputTOP(0);
+	const TD::OP_PixelFormat inputFormat = top
+		? top->textureDesc.pixelFormat
+		: TD::OP_PixelFormat::Invalid;
+
 	int apertureSize = myParms.evalApperturesize(inputs);
 	double lowThresh = myParms.evalLowthreshold(inputs) * 255.0;
 	double highThresh = myParms.evalHighthreshold(inputs) * 255.0;
@@ -109,11 +115,17 @@ CannyEdgeTOP::execute(TD::TOP_Output* output, const TD::OP_Inputs* inputs, void*
 
 	cv::Canny(*myFrame, *myOutputFrame, lowThresh, highThresh, apertureSize, l2grad);
 
+	TD::OP_TextureDesc desc = TDPlugin::TOPOutput::resolvedDesc(
+		output,
+		static_cast<uint32_t>(myOutputFrame->cols),
+		static_cast<uint32_t>(myOutputFrame->rows),
+		TD::OP_PixelFormat::Mono8Fixed,
+		true,
+		inputs,
+		inputFormat);
+
 	TD::TOP_UploadInfo info;
-	info.textureDesc.width = myOutputFrame->cols;
-	info.textureDesc.height = myOutputFrame->rows;
-	info.textureDesc.texDim = TD::OP_TexDim::e2D;
-	info.textureDesc.pixelFormat = TD::OP_PixelFormat::Mono8Fixed;
+	info.textureDesc = desc;
 	info.colorBufferIndex = 0;
 
 	cvMatToOutput(output, info);
@@ -174,11 +186,6 @@ CannyEdgeTOP::cvMatToOutput(TD::TOP_Output* output, TD::TOP_UploadInfo info) con
 {
 	size_t width = info.textureDesc.width;
 	size_t height = info.textureDesc.height;
-	size_t imgSize = width * height * sizeof(uint8_t);
-
-	TD::OP_SmartRef<TD::TOP_Buffer> buf = myContext->createOutputBuffer(imgSize, TD::TOP_BufferFlags::None, nullptr);
-	uint8_t* outPixel = static_cast<uint8_t*>(buf->data);
-
 	cv::Mat outMat = *myOutputFrame;
 
 	if (outMat.cols != width || outMat.rows != height)
@@ -186,7 +193,11 @@ CannyEdgeTOP::cvMatToOutput(TD::TOP_Output* output, TD::TOP_UploadInfo info) con
 
 	cv::flip(outMat, outMat, 0);
 
-	std::memcpy(outPixel, outMat.data, imgSize);
-
-	output->uploadBuffer(&buf, info, nullptr);
+	TDPlugin::TOPOutput::uploadMono8(
+		myContext,
+		output,
+		outMat.data,
+		static_cast<uint32_t>(outMat.step),
+		info.textureDesc,
+		TD::TOP_FirstPixel::BottomLeft);
 }

@@ -1,10 +1,12 @@
 #include "CumulativeCostMap.h"
 #include "Parameters.h"
+#include "../../shared/TOPOutputHelper.h"
 
 #include <cassert>
 #include <cstring>
 #include <algorithm>
 #include <limits>
+#include <opencv2/imgproc.hpp>
 
 extern "C"
 {
@@ -79,18 +81,28 @@ CumulativeCostMap::execute(TD::TOP_Output* output, const TD::OP_Inputs* inputs, 
 	if (myInputFrame->empty())
 		return;
 
+	const TD::OP_TOPInput* top = inputs->getInputTOP(0);
+	const TD::OP_PixelFormat inputFormat = top
+		? top->textureDesc.pixelFormat
+		: TD::OP_PixelFormat::Invalid;
+
 	processCost(inputs);
 
 	if (myCostFrame->empty())
 		return;
 
-	TD::TOP_UploadInfo info;
-	info.textureDesc.width = myCostFrame->cols;
-	info.textureDesc.height = myCostFrame->rows;
-	info.textureDesc.texDim = TD::OP_TexDim::e2D;
-	info.textureDesc.pixelFormat = TD::OP_PixelFormat::Mono32Float;
-	info.colorBufferIndex = 0;
+	TD::OP_TextureDesc desc = TDPlugin::TOPOutput::resolvedDesc(
+		output,
+		static_cast<uint32_t>(myCostFrame->cols),
+		static_cast<uint32_t>(myCostFrame->rows),
+		TD::OP_PixelFormat::Mono32Float,
+		true,
+		inputs,
+		inputFormat);
 
+	TD::TOP_UploadInfo info;
+	info.textureDesc = desc;
+	info.colorBufferIndex = 0;
 	cvMatToOutput(output, info);
 }
 
@@ -228,16 +240,18 @@ CumulativeCostMap::cvMatToOutput(TD::TOP_Output* output, TD::TOP_UploadInfo info
 {
 	size_t width = info.textureDesc.width;
 	size_t height = info.textureDesc.height;
-	size_t imgSize = width * height * sizeof(float);
-
-	TD::OP_SmartRef<TD::TOP_Buffer> buf = myContext->createOutputBuffer(imgSize, TD::TOP_BufferFlags::None, nullptr);
-	float* outPixel = static_cast<float*>(buf->data);
-
 	cv::Mat outMat = *myCostFrame;
+
+	if (outMat.cols != width || outMat.rows != height)
+		cv::resize(outMat, outMat, cv::Size(width, height));
 
 	cv::flip(outMat, outMat, 0);
 
-	std::memcpy(outPixel, outMat.data, imgSize);
-
-	output->uploadBuffer(&buf, info, nullptr);
+	TDPlugin::TOPOutput::uploadMono32(
+		myContext,
+		output,
+		static_cast<const float*>(static_cast<const void*>(outMat.data)),
+		static_cast<uint32_t>(outMat.step),
+		info.textureDesc,
+		TD::TOP_FirstPixel::BottomLeft);
 }

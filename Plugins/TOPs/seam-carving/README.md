@@ -8,7 +8,7 @@ TouchDesigner TOP custom operator that resizes an image horizontally by removing
 - Type: `Seamcarving`
 - Inputs: 1-2 TOPs
 - Execute mode: CPU memory
-- Output: `RGBA32Float`
+- Native output: `RGBA32Float`
 
 The `Type` value is compatibility-sensitive. Do not rename it casually, because existing `.toe` files may reference it.
 
@@ -37,9 +37,11 @@ Lower energy values are preferred by the seam tracing path.
 
 ## Output
 
-The output is `RGBA32Float`. Height matches the source image. Width is adjusted by `Carve Width`, subject to safety clamps in the implementation.
+The native output is `RGBA32Float`. Height matches the source image. Width is adjusted by `Carve Width`, subject to safety clamps in the implementation.
 
 Seam insertion creates new pixels by averaging neighboring source pixels around the selected seam path.
+
+The Common page `Output Resolution`, `Output Aspect`, and `Pixel Format` settings are honored during final upload. When Common `Pixel Format` is `Use Input`, the output is repacked to the connected input TOP's pixel format.
 
 ## Dependencies
 
@@ -57,4 +59,3 @@ cmake --build /tmp/td-seam-carving-build
 ```
 
 The CMake project writes the built `.plugin` bundle into the local `plugin/` directory. Build products are intentionally ignored by git.
-

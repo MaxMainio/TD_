@@ -8,7 +8,7 @@ TouchDesigner TOP custom operator that finds connected alpha-mask segments and f
 - Type: `Segmentuv`
 - Inputs: 1 TOP
 - Execute mode: CPU memory
-- Output: `RGBA32Float`
+- Native output: `RG32Float` for coordinate output, with RGBA32 internal processing
 
 The `Type` value is compatibility-sensitive. Do not rename it casually, because existing `.toe` files may reference it.
 
@@ -26,7 +26,7 @@ The input TOP is downloaded as `RGBA32Float`. The alpha channel is thresholded t
 
 ## Output
 
-The output is `RGBA32Float`.
+The coordinate output is intended as `RG32Float`, with red and green carrying the selected UV-like coordinate. Internally, the operator keeps an RGBA32 float image so random-color output and alpha can still be packed into requested formats.
 
 For coordinate methods, every pixel in a segment receives the same representative coordinate:
 
@@ -36,6 +36,8 @@ For coordinate methods, every pixel in a segment receives the same representativ
 - Alpha: 1.
 
 For `Random`, every segment receives a repeatable random RGB color with alpha 1. Background pixels are transparent black.
+
+The Common page `Output Resolution`, `Output Aspect`, and `Pixel Format` settings are honored during final upload. When Common `Pixel Format` is `Use Input`, the output is repacked to the connected input TOP's pixel format.
 
 ## Performance Notes
 
@@ -58,4 +60,3 @@ cmake --build /tmp/td-segment-uv-build
 ```
 
 The CMake project writes the built `.plugin` bundle into the local `plugin/` directory. Build products are intentionally ignored by git.
-

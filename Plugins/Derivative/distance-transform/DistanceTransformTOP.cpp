@@ -14,6 +14,7 @@
 
 #include "DistanceTransformTOP.h"
 #include "Parameters.h"
+#include "../../shared/TOPOutputHelper.h"
 
 #include <cassert>
 #include <opencv2/core.hpp>
@@ -33,7 +34,8 @@ void
 FillTOPPluginInfo(TD::TOP_PluginInfo* info)
 {
 	// This must always be set to this constant
-	info->apiVersion = TD::TOPCPlusPlusAPIVersion;
+	if (!info->setAPIVersion(TD::TOPCPlusPlusAPIVersion))
+		return;
 
 	// Change this to change the executeMode behavior of this plugin.
 	info->executeMode = TD::TOP_ExecuteMode::CPUMem;
@@ -105,12 +107,10 @@ DistanceTransformTOP::execute(TD::TOP_Output* output, const TD::OP_Inputs* input
 	if (myFrame->empty())
 		return;
 
-	TD::TOP_UploadInfo info;
-	info.textureDesc.width = myFrame->cols;
-	info.textureDesc.height = myFrame->rows;
-	info.textureDesc.texDim = TD::OP_TexDim::e2D;
-	info.textureDesc.pixelFormat = TD::OP_PixelFormat::Mono32Float;
-	info.colorBufferIndex = 0;
+	const TD::OP_TOPInput* top = inputs->getInputTOP(0);
+	const TD::OP_PixelFormat inputFormat = top
+		? top->textureDesc.pixelFormat
+		: TD::OP_PixelFormat::Invalid;
 
 	int distanceType = getType(myParms.evalDistancetype(inputs));
 	int maskSize = getMask(myParms.evalMasksize(inputs));
@@ -121,6 +121,19 @@ DistanceTransformTOP::execute(TD::TOP_Output* output, const TD::OP_Inputs* input
 
 	if (donormalize)
 		normalize(*myFrame, *myFrame, 0, 1.0, NORM_MINMAX);
+
+	TD::OP_TextureDesc desc = TDPlugin::TOPOutput::resolvedDesc(
+		output,
+		static_cast<uint32_t>(myFrame->cols),
+		static_cast<uint32_t>(myFrame->rows),
+		TD::OP_PixelFormat::Mono32Float,
+		true,
+		inputs,
+		inputFormat);
+
+	TD::TOP_UploadInfo info;
+	info.textureDesc = desc;
+	info.colorBufferIndex = 0;
 
 	cvMatToOutput(output, info);
 }
@@ -136,17 +149,20 @@ DistanceTransformTOP::cvMatToOutput(TD::TOP_Output* out, TD::TOP_UploadInfo info
 {
 	size_t	height = info.textureDesc.height;
 	size_t	width = info.textureDesc.width;
-	size_t imgsize = 1 * height * width * sizeof(float);
+	cv::Mat outMat = *myFrame;
 
-	TD::OP_SmartRef<TD::TOP_Buffer> buf = myContext->createOutputBuffer(imgsize, TD::TOP_BufferFlags::None, nullptr);
-	float* pixel = static_cast<float*>(buf->data);
+	if (outMat.cols != width || outMat.rows != height)
+		cv::resize(outMat, outMat, cv::Size(width, height));
 
-	cv::resize(*myFrame, *myFrame, cv::Size(width, height));
-	cv::flip(*myFrame, *myFrame, 0);
-	float* data = static_cast<float*>(static_cast<void*>(myFrame->data));
+	cv::flip(outMat, outMat, 0);
 
-	memcpy(pixel, data, imgsize);
-	out->uploadBuffer(&buf, info, nullptr);
+	TDPlugin::TOPOutput::uploadMono32(
+		myContext,
+		out,
+		static_cast<const float*>(static_cast<const void*>(outMat.data)),
+		static_cast<uint32_t>(outMat.step),
+		info.textureDesc,
+		TD::TOP_FirstPixel::BottomLeft);
 }
 
 void 

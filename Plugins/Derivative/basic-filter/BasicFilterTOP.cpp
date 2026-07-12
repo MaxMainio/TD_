@@ -17,6 +17,7 @@
 
 #include "ThreadManager.h"
 #include "FilterWork.h"
+#include "../../shared/TOPOutputHelper.h"
 
 #include <cassert>
 #include <vector>
@@ -32,8 +33,11 @@ DLLEXPORT
 void
 FillTOPPluginInfo(TOP_PluginInfo *info)
 {
-	// This must always be set to this constant
-	info->apiVersion = TOPCPlusPlusAPIVersion;
+	// This must always be set to this constant.
+	if (!info->setAPIVersion(TOPCPlusPlusAPIVersion))
+	{
+		return;
+	}
 
 	// Change this to change the executeMode behavior of this plugin.
 	info->executeMode = TOP_ExecuteMode::CPUMem;
@@ -78,7 +82,7 @@ DestroyTOPInstance(TOP_CPlusPlusBase* instance, TOP_Context *context)
 BasicFilterTOP::BasicFilterTOP(const OP_NodeInfo* info, TOP_Context* context) :
 	myThreadManagers{}, myThreadQueue{}, myExecuteCount{ 0 }, myMultiThreaded{ false },
 	myContext{ context},
-	myPrevDownRes{nullptr}
+	myPrevDownRes{}
 {
 }
 
@@ -104,11 +108,8 @@ BasicFilterTOP::execute(TOP_Output* output, const TD::OP_Inputs* inputs, void* r
 	if (!top)
 		return;
 
-	int inHeight = top->textureDesc.height;
-	int inWidth = top->textureDesc.width;
-
 	OP_TOPInputDownloadOptions	opts;
-	opts.pixelFormat = top->textureDesc.pixelFormat;
+	opts.pixelFormat = TD::OP_PixelFormat::BGRA8Fixed;
 
 
 	OP_SmartRef<OP_TOPDownloadResult> downRes = top->downloadTexture(opts,nullptr);
@@ -116,6 +117,20 @@ BasicFilterTOP::execute(TOP_Output* output, const TD::OP_Inputs* inputs, void* r
 	if (!downRes)
 		return;
 
+	int inHeight = downRes->textureDesc.height;
+	int inWidth = downRes->textureDesc.width;
+
+	TD::OP_TextureDesc outputDesc = TDPlugin::TOPOutput::resolvedDesc(
+		output,
+		static_cast<uint32_t>(inWidth),
+		static_cast<uint32_t>(inHeight),
+		top->textureDesc.pixelFormat,
+		true,
+		inputs,
+		top->textureDesc.pixelFormat);
+
+	if (outputDesc.width == 0 || outputDesc.height == 0)
+		return;
 
 	bool doDither = myParms.evalDither(inputs);
 	int bitsPerColor = myParms.evalBitspercolor(inputs);
@@ -127,19 +142,28 @@ BasicFilterTOP::execute(TOP_Output* output, const TD::OP_Inputs* inputs, void* r
 			if (myThreadQueue.empty())
 			{
 				ThreadManager* threadForWork = myThreadManagers.at(0);
-				threadForWork->sync(doDither, bitsPerColor, inWidth, inHeight, myPrevDownRes, myContext);
+				threadForWork->sync(doDither, bitsPerColor, inWidth, inHeight, outputDesc, myPrevDownRes, myContext);
 				myThreadQueue.push(threadForWork);
 			}
 			else if (myThreadQueue.front()->getStatus() == ThreadStatus::Done)
 			{
 				ThreadManager* threadForWork = myThreadQueue.front();
 				myThreadQueue.pop();
-				OP_SmartRef<TOP_Buffer> outBuffer = nullptr;
+				OP_SmartRef<TOP_Buffer> outBuffer;
 				TOP_UploadInfo info;
 				threadForWork->popOutBuffer(outBuffer, info);
-				output->uploadBuffer(&outBuffer, info, nullptr);
+				if (outBuffer)
+				{
+					TDPlugin::TOPOutput::uploadBGRA8(
+						myContext,
+						output,
+						static_cast<const uint8_t*>(outBuffer->data),
+						info.textureDesc.width * 4,
+						info.textureDesc,
+						info.firstPixel);
+				}
 
-				threadForWork->sync(doDither, bitsPerColor, inWidth, inHeight, myPrevDownRes, myContext);
+				threadForWork->sync(doDither, bitsPerColor, inWidth, inHeight, outputDesc, myPrevDownRes, myContext);
 				myThreadQueue.push(threadForWork);
 			}
 			else
@@ -148,7 +172,7 @@ BasicFilterTOP::execute(TOP_Output* output, const TD::OP_Inputs* inputs, void* r
 				{
 					if (tm->getStatus() == ThreadStatus::Waiting)
 					{
-						tm->sync(doDither, bitsPerColor, inWidth, inHeight, myPrevDownRes, myContext);
+						tm->sync(doDither, bitsPerColor, inWidth, inHeight, outputDesc, myPrevDownRes, myContext);
 						myThreadQueue.push(tm);
 						break;
 					}
@@ -162,36 +186,39 @@ BasicFilterTOP::execute(TOP_Output* output, const TD::OP_Inputs* inputs, void* r
 				switchToSingleThreaded();
 
 
-			TOP_UploadInfo info;
-			info.textureDesc = myPrevDownRes->textureDesc;
-			info.colorBufferIndex = 0;
-
-			uint64_t byteSize = myPrevDownRes->size;
-			OP_SmartRef<TOP_Buffer> outbuf = myContext->createOutputBuffer(byteSize, TOP_BufferFlags::None, nullptr);
-
-
 			uint32_t* inBuffer = (uint32_t*)myPrevDownRes->getData();
-			uint32_t* outBuffer = (uint32_t*)outbuf->data;
-
-			int outWidth = info.textureDesc.width;
-			int outHeight = info.textureDesc.height;
+			std::vector<uint32_t> outBuffer(
+				static_cast<size_t>(outputDesc.width) *
+				static_cast<size_t>(outputDesc.height));
 
 			Filter::doFilterWork(
-				inBuffer, inWidth, inHeight, outBuffer, outWidth,
-				outHeight, doDither, bitsPerColor
+				inBuffer,
+				inWidth,
+				inHeight,
+				outBuffer.data(),
+				static_cast<int>(outputDesc.width),
+				static_cast<int>(outputDesc.height),
+				doDither,
+				bitsPerColor
 			);
 
-			output->uploadBuffer(&outbuf, info, nullptr);
+			TDPlugin::TOPOutput::uploadBGRA8(
+				myContext,
+				output,
+				reinterpret_cast<const uint8_t*>(outBuffer.data()),
+				outputDesc.width * 4,
+				outputDesc,
+				TD::TOP_FirstPixel::BottomLeft);
 		}
 	}
 	// myPrevDownRes = std::move(downRes);
 
 	bool threaded = myParms.evalMultithreaded(inputs);
 
-	if (threaded & !myMultiThreaded)
+	if (threaded && !myMultiThreaded)
 		switchToMultiThreaded();
 
-	if (!threaded & myMultiThreaded)
+	if (!threaded && myMultiThreaded)
 		switchToSingleThreaded();
 }
 

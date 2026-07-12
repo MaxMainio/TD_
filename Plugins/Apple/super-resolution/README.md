@@ -16,7 +16,8 @@ Apple Super Resolution is a TouchDesigner TOP that uses VideoToolbox Super Resol
 
 ## Output
 
-- `BGRA8Fixed` TOP at the selected or fallback output size.
+- `BGRA8Fixed` TOP at the selected or fallback VideoToolbox output size.
+- The Common page `Output Resolution` parameter is ignored by design so the output stays tied to the selected Super Resolution scale factor.
 
 ## Dependencies
 

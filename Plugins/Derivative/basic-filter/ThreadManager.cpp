@@ -24,7 +24,7 @@
 
 
 ThreadManager::ThreadManager() :
-	myStatus{ ThreadStatus::Waiting }, myOutBuffer{nullptr}, myDownRes{nullptr},
+	myStatus{ ThreadStatus::Waiting }, myOutBuffer{}, myDownRes{},
 	myThread{}, myBufferMutex{}, myBufferCV{},
 	myThreadShouldExit{false}, myInWidth{}, myInHeight{},
 	myOutWidth{}, myOutHeight{}, myDoDither{ false }, myBitsPerColor{ 8 }, myContext{ nullptr }, myUploadInfo{}
@@ -51,8 +51,14 @@ ThreadManager::~ThreadManager()
 }
 
 void 
-ThreadManager::sync(bool doDither, int bitsPerColor, int inWidth, int inHeight, 
-																			const OP_SmartRef<OP_TOPDownloadResult> downRes, TD::TOP_Context* context)
+ThreadManager::sync(
+	bool doDither,
+	int bitsPerColor,
+	int inWidth,
+	int inHeight,
+	const TD::OP_TextureDesc& outputDesc,
+	const OP_SmartRef<OP_TOPDownloadResult> downRes,
+	TD::TOP_Context* context)
 {
 	std::unique_lock<std::mutex> bufferlock(myBufferMutex);
 	myDoDither = doDither;
@@ -62,7 +68,9 @@ ThreadManager::sync(bool doDither, int bitsPerColor, int inWidth, int inHeight,
 
 	myContext = context;
 	myDownRes = downRes;
-	myUploadInfo.textureDesc = myDownRes->textureDesc;
+	myUploadInfo.textureDesc = outputDesc;
+	myUploadInfo.firstPixel = TD::TOP_FirstPixel::BottomLeft;
+	myUploadInfo.colorBufferIndex = 0;
 	myOutWidth = myUploadInfo.textureDesc.width;
 	myOutHeight = myUploadInfo.textureDesc.height;
 	myStatus.store(ThreadStatus::Ready);

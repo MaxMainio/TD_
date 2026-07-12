@@ -43,7 +43,14 @@ public:
 
 	~ThreadManager();
 
-	void	sync(bool doDither, int bitsPerColor, int inWidth, int inHeight, const OP_SmartRef<OP_TOPDownloadResult> downRes, TD::TOP_Context* context);
+	void	sync(
+		bool doDither,
+		int bitsPerColor,
+		int inWidth,
+		int inHeight,
+		const TD::OP_TextureDesc& outputDesc,
+		const OP_SmartRef<OP_TOPDownloadResult> downRes,
+		TD::TOP_Context* context);
 
 
 	void	popOutBuffer(OP_SmartRef<TOP_Buffer>& outBuffer, TD::TOP_UploadInfo& info);

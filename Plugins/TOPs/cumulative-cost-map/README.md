@@ -8,7 +8,7 @@ TouchDesigner TOP custom operator that converts one channel of an input TOP into
 - Type: `Cumulativecostmap`
 - Inputs: 1 TOP
 - Execute mode: CPU memory
-- Output: `Mono32Float`
+- Native output: `Mono32Float`
 
 The `Type` value is compatibility-sensitive. Do not rename it casually, because existing `.toe` files may reference it.
 
@@ -25,7 +25,9 @@ The input TOP is downloaded as `RGBA32Float`. The selected channel is treated as
 
 ## Output
 
-The output is a single-channel `Mono32Float` image. Values are accumulated from the bottom row to the top row, so output values can exceed the normal 0-1 display range. Use a Normalize TOP, Level TOP, or other remapping step when the result needs to be viewed directly.
+The native output is a single-channel `Mono32Float` image. Values are accumulated from the bottom row to the top row, so output values can exceed the normal 0-1 display range. Use a Normalize TOP, Level TOP, or other remapping step when the result needs to be viewed directly.
+
+The Common page `Output Resolution`, `Output Aspect`, and `Pixel Format` settings are honored during final upload. When Common `Pixel Format` is `Use Input`, the cost map is repacked to the connected input TOP's pixel format.
 
 ## Dependencies
 
@@ -43,4 +45,3 @@ cmake --build /tmp/td-cumulative-cost-map-build
 ```
 
 The CMake project writes the built `.plugin` bundle into the local `plugin/` directory. Build products are intentionally ignored by git.
-

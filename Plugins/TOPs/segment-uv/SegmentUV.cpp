@@ -1,5 +1,6 @@
 #include "SegmentUV.h"
 #include "Parameters.h"
+#include "../../shared/TOPOutputHelper.h"
 
 #include <cassert>
 #include <cstring>
@@ -82,16 +83,28 @@ SegmentUV::execute(TD::TOP_Output* output, const TD::OP_Inputs* inputs, void*)
 	if (myInputFrame->empty())
 		return;
 
+	const TD::OP_TOPInput* top = inputs->getInputTOP(0);
+	const TD::OP_PixelFormat inputFormat = top
+		? top->textureDesc.pixelFormat
+		: TD::OP_PixelFormat::Invalid;
+
 	processSegments(inputs);
 
 	if (myOutputFrame->empty())
 		return;
 
+	TD::OP_TextureDesc desc = TDPlugin::TOPOutput::resolvedDesc(
+		output,
+		static_cast<uint32_t>(myOutputFrame->cols),
+		static_cast<uint32_t>(myOutputFrame->rows),
+		TD::OP_PixelFormat::RG32Float,
+		true,
+		inputs,
+		inputFormat
+	);
+
 	TD::TOP_UploadInfo info;
-	info.textureDesc.width = myOutputFrame->cols;
-	info.textureDesc.height = myOutputFrame->rows;
-	info.textureDesc.texDim = TD::OP_TexDim::e2D;
-	info.textureDesc.pixelFormat = TD::OP_PixelFormat::RGBA32Float;
+	info.textureDesc = desc;
 	info.colorBufferIndex = 0;
 
 	cvMatToOutput(output, info);
@@ -327,21 +340,26 @@ SegmentUV::processSegments(const TD::OP_Inputs* inputs)
 void
 SegmentUV::cvMatToOutput(TD::TOP_Output* output, TD::TOP_UploadInfo info) const
 {
-	size_t width = info.textureDesc.width;
-	size_t height = info.textureDesc.height;
-	size_t imgSize = width * height * 4 * sizeof(float);
-
-	TD::OP_SmartRef<TD::TOP_Buffer> buf = myContext->createOutputBuffer(imgSize, TD::TOP_BufferFlags::None, nullptr);
-	float* outPixel = static_cast<float*>(buf->data);
-
 	cv::Mat outMat = *myOutputFrame;
 
-	if (outMat.cols != width || outMat.rows != height)
-		cv::resize(outMat, outMat, cv::Size(width, height));
+	if (outMat.cols != static_cast<int>(info.textureDesc.width) ||
+		outMat.rows != static_cast<int>(info.textureDesc.height))
+	{
+		cv::resize(
+			outMat,
+			outMat,
+			cv::Size(info.textureDesc.width, info.textureDesc.height)
+		);
+	}
 
 	cv::flip(outMat, outMat, 0);
 
-	std::memcpy(outPixel, outMat.data, imgSize);
-
-	output->uploadBuffer(&buf, info, nullptr);
+	TDPlugin::TOPOutput::uploadRGBA32(
+		myContext,
+		output,
+		static_cast<const float*>(static_cast<const void*>(outMat.data)),
+		static_cast<uint32_t>(outMat.step),
+		info.textureDesc,
+		TD::TOP_FirstPixel::BottomLeft
+	);
 }
