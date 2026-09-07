@@ -241,6 +241,9 @@ AppleInstanceMask::runInstanceMask(
 
 				hasCachedMask.store(true);
 			}
+			// Vision returns a retained pixel buffer, even when using ARC.
+			if (maskBuf)
+				CVPixelBufferRelease(maskBuf);
 		}
 
 		CVPixelBufferRelease(inputBuffer);

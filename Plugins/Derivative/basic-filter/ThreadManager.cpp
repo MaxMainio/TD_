@@ -35,7 +35,12 @@ ThreadManager::ThreadManager() :
 
 ThreadManager::~ThreadManager()
 {
-	myThreadShouldExit.store(true);
+	{
+		// Change the wait predicate under the same mutex as the worker so
+		// shutdown cannot lose its notification just before the worker waits.
+		std::lock_guard<std::mutex> bufferLock(myBufferMutex);
+		myThreadShouldExit.store(true);
+	}
 	myBufferCV.notify_all();
 	if (myThread->joinable())
 	{

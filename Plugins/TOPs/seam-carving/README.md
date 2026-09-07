@@ -47,7 +47,7 @@ The Common page `Output Resolution`, `Output Aspect`, and `Pixel Format` setting
 
 - TouchDesigner C++ TOP headers
 - C++17 compiler
-- OpenCV `core`
+- OpenCV `core`, `imgproc` (used for Common output resizing)
 
 Current local builds link to Homebrew OpenCV dylibs under `/opt/homebrew/opt/opencv/lib`. That is acceptable for private local development, but distributed binary bundles should either document the Homebrew OpenCV requirement or embed and rewrite the OpenCV dylib install names.
 

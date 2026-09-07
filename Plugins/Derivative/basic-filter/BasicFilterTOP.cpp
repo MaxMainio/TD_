@@ -88,6 +88,7 @@ BasicFilterTOP::BasicFilterTOP(const OP_NodeInfo* info, TOP_Context* context) :
 
 BasicFilterTOP::~BasicFilterTOP()
 {
+	switchToSingleThreaded();
 }
 
 void

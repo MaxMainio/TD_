@@ -8,7 +8,7 @@ if (APPLE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++")
 endif()
 
-set(OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/plugin)
+set(OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/plugin" CACHE PATH "Plugin bundle output directory")
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
@@ -55,3 +55,20 @@ endfunction(BuiltCustomOp)
 
 
 BuiltCustomOp(${PROJECT_NAME} "BasicFilterTOP.cpp")
+
+option(TD_BUILD_TESTS "Build the macOS worker lifecycle regression test" OFF)
+if(TD_BUILD_TESTS)
+	if(NOT APPLE)
+		message(FATAL_ERROR "The worker lifecycle test requires macOS")
+	endif()
+	enable_testing()
+	add_executable(BasicFilterLifecycleTest
+		tests/lifecycle.cpp
+		BasicFilterTOP.cpp
+		Parameters.cpp
+		ThreadManager.cpp
+		FilterWork.cpp
+	)
+	add_test(NAME BasicFilterLifecycle COMMAND BasicFilterLifecycleTest)
+	set_tests_properties(BasicFilterLifecycle PROPERTIES TIMEOUT 30)
+endif()

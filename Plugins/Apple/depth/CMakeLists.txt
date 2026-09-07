@@ -37,3 +37,14 @@ set_target_properties(AppleDepth PROPERTIES
     BUNDLE_EXTENSION "plugin"
     OUTPUT_NAME "AppleDepth"
 )
+
+option(TD_BUILD_TESTS "Build the half-precision depth conversion regression test" OFF)
+if(TD_BUILD_TESTS)
+	enable_testing()
+	add_executable(AppleDepthHalfFloatTest tests/half-float.mm AppleDepth.mm)
+	target_compile_options(AppleDepthHalfFloatTest PRIVATE -fobjc-arc)
+	get_target_property(DEPTH_FRAMEWORKS AppleDepth LINK_LIBRARIES)
+	target_link_libraries(AppleDepthHalfFloatTest PRIVATE ${DEPTH_FRAMEWORKS})
+	add_test(NAME AppleDepthHalfFloat COMMAND AppleDepthHalfFloatTest)
+	set_tests_properties(AppleDepthHalfFloat PROPERTIES TIMEOUT 30)
+endif()

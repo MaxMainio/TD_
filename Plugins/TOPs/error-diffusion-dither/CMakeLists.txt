@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 3.20)
+if(CMAKE_HOST_APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS deployment target")
+endif()
+project(ErrorDiffusionDither LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+find_package(Threads REQUIRED)
+set(OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/plugin" CACHE PATH "Plugin bundle output directory")
+
+add_library(DitherEngine STATIC DitherEngine.cpp)
+set_target_properties(DitherEngine PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(DitherEngine PUBLIC Threads::Threads)
+target_include_directories(DitherEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    # Accumulation order and separate float32 multiply/add match the Python COMP.
+    target_compile_options(DitherEngine PRIVATE -ffp-contract=off -fno-fast-math)
+endif()
+
+add_library(ErrorDiffusionDither MODULE ErrorDiffusionDitherTOP.cpp Parameters.cpp)
+target_link_libraries(ErrorDiffusionDither PRIVATE DitherEngine)
+set_target_properties(ErrorDiffusionDither PROPERTIES PREFIX "" BUNDLE TRUE BUNDLE_EXTENSION "plugin"
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist"
+    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}" RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIRECTORY}")
+if(APPLE)
+    option(TD_ADHOC_SIGN "Ad-hoc sign the local plugin bundle after building" ON)
+    if(TD_ADHOC_SIGN)
+        find_program(CODESIGN_EXECUTABLE codesign REQUIRED)
+        add_custom_command(TARGET ErrorDiffusionDither POST_BUILD
+            COMMAND "${CODESIGN_EXECUTABLE}" --force --sign - "$<TARGET_BUNDLE_DIR:ErrorDiffusionDither>"
+            COMMENT "Ad-hoc signing ErrorDiffusionDither.plugin" VERBATIM)
+    endif()
+endif()
+
+option(TD_BUILD_TESTS "Build reference, output and lifecycle tests" OFF)
+if(TD_BUILD_TESTS)
+    enable_testing()
+    add_executable(DitherTests tests/reference.cpp)
+    target_link_libraries(DitherTests PRIVATE DitherEngine)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(DitherTests PRIVATE -ffp-contract=off -fno-fast-math)
+    endif()
+    add_test(NAME DitherReferenceAndLifecycle COMMAND DitherTests)
+    set_tests_properties(DitherReferenceAndLifecycle PROPERTIES TIMEOUT 90)
+    add_executable(DitherBenchmark tests/benchmark.cpp)
+    target_link_libraries(DitherBenchmark PRIVATE DitherEngine)
+    add_executable(DitherOracleDriver tests/oracle_driver.cpp)
+    target_link_libraries(DitherOracleDriver PRIVATE DitherEngine)
+endif()

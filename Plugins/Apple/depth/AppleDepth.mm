@@ -278,7 +278,7 @@ AppleDepth::halfToFloat(uint16_t h)
 		}
 
 		hSig &= 0x03FFu;
-		fExp = (uint32_t)(127 - 15 - shift) << 23;
+		fExp = (uint32_t)(127 - 14 - shift) << 23;
 		fSig = (uint32_t)hSig << 13;
 	}
 	else if (hExp == 0x7C00u)
