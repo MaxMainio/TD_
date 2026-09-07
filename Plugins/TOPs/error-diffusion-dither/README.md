@@ -103,10 +103,13 @@ Info CHOP channels:
 - `workers`: allocated background worker threads (not total CPU cores in use)
 - `scratch_bytes`, `retained_bytes`: engine scratch size and retained buffer capacity
 
-Upload GPU completion is not included in CPU timings. See the
-[validation and benchmark record](../../../docs/error-diffusion-dither-validation.md)
-for measured results and remaining in-host checks. 1080p/60 is a target, not a
-guarantee; strict diffusion retains sequential dependencies within each channel.
+Upload GPU completion is not included in CPU timings. On an Apple M1 Max, measured
+1080p CPU processing plus RGBA8 packing took approximately 26-32 ms across the
+eight kernels in RGB/Monochrome (1-bit raster, strength 1, preserved alpha).
+These measurements exclude GPU transfers and are not full TOP cook times.
+1080p/60 is a target, not a guarantee; the measured CPU time already exceeds its
+16.67 ms frame budget. Strict diffusion retains sequential dependencies within
+each channel. Run the included benchmark on the target machine.
 
 ## Build and install
 
@@ -115,8 +118,7 @@ macOS SDK, and a compatible TouchDesigner installation for loading the plugin.
 The build uses C++17 and defaults to a macOS 12.0 deployment target. No OpenCV
 installation or downloaded build dependencies are needed.
 
-From this plugin's source folder (also works after extracting a standalone
-source ZIP):
+From this plugin's source folder after downloading or cloning the source:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DTD_BUILD_TESTS=ON
@@ -135,10 +137,11 @@ depend on files elsewhere in the workspace. The copy matches
 helper should be reviewed and copied here deliberately, preserving the local
 single-channel packing behavior in `OutputPacking.h`.
 
-For a source release, include this folder's source/header files, `CMakeLists.txt`,
-`Info.plist`, README, and `tests/`. Omit generated `build/`, `plugin/`, and Python
-cache folders. Keep the SDK license headers intact. The linked benchmark record
-is part of the full workspace documentation and is not required to build.
+Publish this folder as ordinary, unzipped source files so GitHub displays the
+README and code. Include its source/header files, `CMakeLists.txt`, `Info.plist`,
+README, and `tests/`. Omit generated `build/`, `plugin/`, and Python cache folders.
+Keep the SDK license headers intact. No parent/sibling workspace folder is needed
+to build. Optional download archives can contain the same source files.
 
 The SDK headers were copied unchanged from the maintained
 Basic Filter plugin, with Derivative license headers preserved. No source or
@@ -156,13 +159,15 @@ load in Intel TouchDesigner. Match the architecture of the TouchDesigner process
 To explicitly target Intel, configure a fresh build directory with
 `-DCMAKE_OSX_ARCHITECTURES=x86_64`; a Universal build uses
 `-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"` and requires SDK support for both.
-The standalone source package builds for both `arm64` and `x86_64`. Native ARM
+The standalone source folder builds for both `arm64` and `x86_64`. Native ARM
 tests and the Intel test executable under Rosetta passed on 2026-09-07. Actual
 Intel Mac TouchDesigner loading and performance remain unvalidated.
 
 No custom entitlements or rpaths are needed for the system-only dependencies.
 The build ad-hoc signs the complete local bundle (`TD_ADHOC_SIGN=ON`); this is not a notarized public
 release. Check `otool -L` and validate loading before sharing compiled bundles.
+The user confirmed normal operation on their Apple Silicon Mac with the installed
+TouchDesigner 2025.33230 target; the full scripted host suite remains pending.
 
 ## Tests and host validation
 
