@@ -1,0 +1,18 @@
+# Generated local build output
+build/
+plugin/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+DerivedData/
+*.plugin/
+*.o
+*.a
+*.dylib
+__pycache__/
+*.pyc
+.DS_Store
+*.toe.autosave
+*.tox.autosave
+*.mlmodelc/
+*.mlpackage/

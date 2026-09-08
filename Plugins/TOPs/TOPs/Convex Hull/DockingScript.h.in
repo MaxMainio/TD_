@@ -1,0 +1,3 @@
+#pragma once
+// Generated from the project-local Docking.py; no runtime source-file dependency.
+inline constexpr const char* HullDockingScript = R"HULL_DOCK(@HULL_DOCKING_SCRIPT@)HULL_DOCK";
