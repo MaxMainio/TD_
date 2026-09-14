@@ -48,14 +48,25 @@ void check(const cv::Mat& image, double threshold, int seed)
     InfoTable table;
     for (int method = 0; method < 5; ++method)
     {
-        const auto expected = legacyProcess(image, threshold, MethodMenuItems(method), seed);
+        auto expected = legacyProcess(image, threshold, MethodMenuItems(method), seed);
+        // Keep the frozen reference unchanged. Recover its selected integer row
+        // on these small fixtures, then express that same pixel from the bottom.
+        // This preserves exact checks for U/B/A, Random, selection and backgrounds.
+        if (MethodMenuItems(method) != MethodMenuItems::Random && image.rows > 1)
+            for (int y = 0; y < image.rows; ++y) for (int x = 0; x < image.cols; ++x)
+            {
+                auto& color = expected.at<cv::Vec4f>(y,x);
+                if (color[3] == 0) continue;
+                const int selectedY = int(std::lround(double(color[1]) * (image.rows - 1)));
+                color[1] = float(image.rows - 1 - selectedY) / float(image.rows - 1);
+            }
         for (auto detail : {DATDetail::Basic, DATDetail::Medium, DATDetail::Maximum})
         {
             table.setDetail(detail);
             const auto output = Segment::process(image, threshold, MethodMenuItems(method), seed, &table);
             require(output.type() == expected.type() && output.size() == expected.size(), "output dimensions/type");
             for (int y = 0; y < output.rows; ++y)
-                require(std::memcmp(output.ptr(y), expected.ptr(y), size_t(output.cols)*16) == 0, "legacy pixel parity");
+                require(std::memcmp(output.ptr(y), expected.ptr(y), size_t(output.cols)*16) == 0, "legacy pixel parity with corrected V origin");
             require(table.rowCount() == int(parts.size()) + 1, "component count");
             const int columns = detail == DATDetail::Basic ? 5 : detail == DATDetail::Medium ? 9 : 15;
             require(table.columnCount() == columns, "detail column count");
@@ -100,11 +111,48 @@ void check(const cv::Mat& image, double threshold, int seed)
     }
 }
 
+size_t checkBottomLeftOrigin()
+{
+    struct Sample { int width, height, x, y; float u, v; };
+    const Sample samples[] = {
+        {5,5,0,4,0,0}, {5,5,4,4,1,0}, {5,5,0,0,0,1}, {5,5,4,0,1,1},
+        {5,5,1,1,.25f,.75f}, {5,5,3,3,.75f,.25f},
+        {1,5,0,3,0,.25f}, {5,1,3,0,.75f,0}, {1,1,0,0,0,0}
+    };
+    size_t checks = 0;
+    for (auto sample : samples) for (int method = 0; method < 4; ++method)
+        for (auto detail : {DATDetail::Basic,DATDetail::Medium,DATDetail::Maximum})
+    {
+        cv::Mat input(sample.height,sample.width,CV_32FC4,cv::Scalar(0));
+        input.at<cv::Vec4f>(sample.y,sample.x)[3] = 1;
+        InfoTable table;
+        table.setDetail(detail);
+        const auto output = Segment::process(input,.5,MethodMenuItems(method),1,&table);
+        const auto color = output.at<cv::Vec4f>(sample.y,sample.x);
+        require(color[0] == sample.u && color[1] == sample.v && color[2] == 0 && color[3] == 1,
+            "bottom-left UV origin: known pixel coordinate");
+        for (int y = 0; y < input.rows; ++y) for (int x = 0; x < input.cols; ++x)
+            if (x != sample.x || y != sample.y)
+                require(output.at<cv::Vec4f>(y,x) == cv::Vec4f(0,0,0,0), "UV fix moved the segment/background");
+        require(table.rowCount() == 2, "single-pixel segment row");
+        if (detail == DATDetail::Maximum)
+        {
+            require(std::stod(table.cell(1,12)) == sample.u && std::stod(table.cell(1,13)) == sample.v,
+                "DAT output coordinates disagree with bottom-left UV");
+            require(near(std::stod(table.cell(1,2)), (sample.height-sample.y-.5)/sample.height),
+                "DAT geometric origin changed");
+        }
+        ++checks;
+    }
+    return checks;
+}
+
 int main()
 {
     try
     {
         cv::setNumThreads(1);
+        const auto originChecks = checkBottomLeftOrigin();
         for (unsigned mask = 0; mask < 512; ++mask)
         {
             cv::Mat image(3,3,CV_32FC4,cv::Scalar(0,0,0,0));
@@ -148,7 +196,8 @@ int main()
         require(std::string(table.cell(1,9))=="16777217","pixel count precision");
         table.setDetail(DATDetail::Basic);
         require(table.rowCount()==1 && table.columnCount()==5,"detail clears incompatible snapshot");
-        std::cout << cases << " image/detail comparisons and " << measuredRows << " independent measurement rows passed\n";
+        std::cout << cases << " image/detail comparisons and " << measuredRows << " independent measurement rows passed; "
+            << originChecks << " bottom-left origin regressions passed\n";
     }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

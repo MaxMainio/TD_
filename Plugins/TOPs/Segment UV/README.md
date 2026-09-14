@@ -2,18 +2,21 @@
 
 TouchDesigner CPU TOP that finds connected alpha-mask segments and fills each
 segment with a representative coordinate or repeatable random color. Version
-**0.2.0** adds an automatically docked Info DAT describing each segment.
+**0.2.1** uses bottom-left UV coordinates and includes an automatically docked
+Info DAT describing each segment.
 
 - Label: **Segment UV**. Type: `Segmentuv`. Bundle: `SegmentUV.plugin`.
 - One TOP input. OpenCV `core` and `imgproc`; C++17.
 - Native coordinate format: `RG32Float`, with RGBA32 internal processing.
 - macOS source for arm64 and x86_64, with matching-architecture OpenCV and
   TouchDesigner. Current validation is arm64, TouchDesigner 2025.33230/Python
-  3.11.15. Intel builds and live host acceptance remain unverified.
+  3.11.15. The 0.2.1 bottom-left UV correction has been confirmed working in
+  TouchDesigner. Intel builds remain unverified.
 
 The original operator identity, input/image parameters, representative-pixel
-selection, random draw order, output colors, and Common output behavior are
-preserved. Existing nodes gain DAT Detail and the repair pulse.
+selection, random draw order/colors, and Common output handling are preserved.
+Version 0.2.1 corrects coordinate output V to increase upward from the bottom.
+Existing DAT Detail and repair controls remain available.
 
 ## Parameters
 
@@ -37,6 +40,9 @@ All pixels in a segment receive the same value. Coordinate methods write a
 representative coordinate into red/green, blue 0, and alpha 1. Random writes
 repeatable RGB colors with alpha 1. Background pixels are transparent black.
 
+Representative-pixel selection still uses OpenCV's top-down indices; the final
+coordinate is converted to bottom-left UV space.
+
 - Centroid rounds the arithmetic mean pixel index to the nearest integer, with
   halfway values rounded upward, then clamps it to the image.
 - Bounding-Box Center uses `left + width / 2`, `top + height / 2` with integer
@@ -51,11 +57,17 @@ repeatable RGB colors with alpha 1. Background pixels are transparent black.
   OpenCV labeling and standard-library random implementations can differ across
   dependency/compiler versions.
 
-The preserved image coordinate encoding is **top-down pixel-index based**:
-`R = x / (input_width - 1)`, `G = y / (input_height - 1)`. A one-pixel dimension
-produces 0 on that axis. The first and last pixel centers map to 0 and 1.
-The upload restores the original image orientation. These encoded values differ
-from the geometric coordinates in the DAT below.
+The image coordinate encoding uses a **bottom-left UV origin**. For the selected
+OpenCV pixel index `(x, y)`, whose row index increases downward:
+`R = x / (input_width - 1)`,
+`G = (input_height - 1 - y) / (input_height - 1)`.
+Bottom-left and top-right pixel centers map to `(0, 0)` and `(1, 1)`. A one-pixel
+dimension retains 0 on that axis. This conversion changes the encoded coordinate,
+not the segment's position in the image. DAT geometry below shares the bottom-left
+origin but uses image-edge normalization, so its values can differ slightly.
+
+Versions through 0.2.0 encoded V from the top. If a downstream network compensates
+with `1 - v`, remove that compensation when upgrading to 0.2.1.
 
 Common Output Resolution uses the original OpenCV default linear resize before
 final upload; boundary pixels can therefore become interpolated. Output Aspect
@@ -93,9 +105,9 @@ Each larger detail includes all preceding columns in the same order:
 - `centroid_u/v` are the unrounded arithmetic mean of selected pixel centers,
   normalized using the same bottom-left geometric convention.
 - `output_r/g/b` are the segment's exact assigned float values before Common
-  resizing/storage conversion. Coordinate methods expose their existing encoded
-  coordinate and blue 0; Random exposes its three color values. These columns
-  intentionally retain the image's original encoding described above.
+  resizing/storage conversion. Coordinate methods expose the corrected bottom-left
+  UV coordinate and blue 0; Random exposes its three color values. These columns
+  follow the image encoding described above.
 
 Geometry is calculated at input resolution and remains available in every Method,
 including Random. Common settings do not alter the table. Empty masks, missing
@@ -133,9 +145,10 @@ cached reads; actual Info DAT scheduling/viewer cost requires host validation.
 Native arm64 automated image, measurement, lifecycle/failure and simulated-host
 docking tests passed. Live table scheduling/viewer performance, Intel builds and
 older macOS compatibility remain unverified. For 10,000 separated 4x4 segments at
-1080p with the default Method, measured median CPU time was 4.000 ms for the
-previous algorithm and 5.843/7.513/9.411 ms for Basic/Medium/Maximum. These figures
+1080p with the default Method in version 0.2.0, measured median CPU time was
+4.000 ms for the previous algorithm and 5.843/7.513/9.411 ms for Basic/Medium/Maximum. These figures
 exclude host transfers and table rendering and do not establish end-to-end FPS.
+They predate the UV-origin correction; version 0.2.1 has not been rebenchmarked.
 Reproduce the comparison against the included frozen previous algorithm with:
 
 ```sh
@@ -224,7 +237,10 @@ not install or replace a plugin in your existing projects.
    Check all five Methods, including repeatable Random values with Seed changes.
 3. Compare the TOP with the previous bundle on your normal inputs. Change Common
    resolution, aspect, and pixel format; images should retain their established
-   behavior and DAT geometry should stay at input resolution.
+   behavior apart from the corrected coordinate V. With isolated pixels at the
+   bottom-left and top-right, confirm output UVs `(0, 0)` and `(1, 1)` for all four
+   coordinate methods. Check that Maximum's output_g agrees. DAT geometry should
+   stay at input resolution.
 4. Change the input, then disconnect it and try an empty mask. Confirm headers
    remain and old rows disappear, including when switching DAT Detail without input.
 5. Rename/copy nodes, copy a TOP alone, and save/reload. Each table should reference
@@ -240,15 +256,18 @@ not install or replace a plugin in your existing projects.
 The four CTest suites cover independent measurements, legacy image parity,
 Common packing/resizing, C++ host lifecycle/failure simulation, injected C++
 allocation failures, and simulated-host docking. They do not substitute for the
-above live Custom OP checks. Application feedback was positive; the individual
-acceptance cases and live performance still require verification.
+above live Custom OP checks. Version 0.2.1's bottom-left UV correction has been
+confirmed working in TouchDesigner. Full acceptance-checklist coverage and live
+performance measurements remain unverified.
 
 ## Source and attribution
 
-Version 0.2.0 preserves the original Segment UV image algorithm in
-`SegmentEngine.cpp`; `tests/legacy.cpp` is a frozen test-only reference for image
-parity and timing. The Info DAT interface and deferred docking bridge were
-adapted from the maintained Convex Hull 0.3.0 implementation. All necessary code
+Version 0.2.0 moved the original Segment UV image algorithm into
+`SegmentEngine.cpp`; 0.2.1 corrects its final UV V encoding to a bottom-left origin.
+`tests/legacy.cpp` remains an unchanged test-only reference for pixel selection,
+unaffected channels, Random colors, and timing. Tests account for the intended
+V correction and also check explicit corner/interior coordinates. The Info DAT
+interface and deferred docking bridge were adapted from the maintained Convex Hull 0.3.0 implementation. All necessary code
 is included locally; no other plugin is a build or runtime dependency.
 
 The included SDK headers retain their Derivative copyright and Shared Use

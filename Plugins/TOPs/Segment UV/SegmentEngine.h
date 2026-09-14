@@ -5,7 +5,8 @@
 
 namespace Segment
 {
-// Input/output are top-down RGBA32Float. A null table is for image-only timing.
+// Image rows are top-down RGBA32Float; encoded UV coordinates are bottom-left.
+// A null table is for image-only timing.
 // On failure, any supplied table is cleared before the exception propagates.
 cv::Mat process(const cv::Mat&, double alphaThreshold, MethodMenuItems, int seed,
                 InfoTable* table = nullptr);

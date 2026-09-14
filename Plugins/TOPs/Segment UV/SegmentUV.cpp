@@ -18,7 +18,7 @@ DLLEXPORT void FillTOPPluginInfo(TD::TOP_PluginInfo* info)
     custom.authorName->setString("Max Mainio Beidler");
     custom.authorEmail->setString("beidler.max@email.com");
     custom.minInputs = custom.maxInputs = 1;
-    custom.minorVersion = 2;
+    custom.minorVersion = 3;
     Segment::configureDocking(custom);
 }
 DLLEXPORT TD::TOP_CPlusPlusBase* CreateTOPInstance(const TD::OP_NodeInfo* node, TD::TOP_Context* context)

@@ -212,9 +212,27 @@ int main()
         source.image.setTo(cv::Scalar(0));
         plugin.execute(&output,&inputs,nullptr);
         require(table(plugin).size()==15,"empty mask stale rows");
+        // Actual RG32 upload: first stored pixel is bottom-left, last is top-right.
+        source.image.setTo(cv::Scalar(0));
+        source.image.at<cv::Vec4f>(source.image.rows-1,0)[3] = 1;
+        source.image.at<cv::Vec4f>(0,source.image.cols-1)[3] = 1;
+        inputs.useInput = false;
+        output.suggested = source.textureDesc;
+        output.suggested.pixelFormat = OP_PixelFormat::RG32Float;
+        for (int method = 0; method < 4; ++method)
+        {
+            inputs.method = method;
+            plugin.execute(&output,&inputs,nullptr);
+            require(output.bytes.size() == source.image.total()*2*sizeof(float), "UV upload size");
+            float bottomLeft[2], topRight[2];
+            std::memcpy(bottomLeft,output.bytes.data(),sizeof(bottomLeft));
+            std::memcpy(topRight,output.bytes.data()+output.bytes.size()-sizeof(topRight),sizeof(topRight));
+            require(bottomLeft[0] == 0 && bottomLeft[1] == 0 && topRight[0] == 1 && topRight[1] == 1,
+                "packed TOP UV origin is not bottom-left");
+        }
         plugin.pulsePressed("Repairsegmentdat",nullptr);
         require(schedules==2 && repaired,"repair pulse");
-        std::cout << comparisons << " Common output parity checks; cached reads, scheduling flags, upload publication, failures and recovery passed\n";
+        std::cout << comparisons << " Common output parity checks; 4 bottom-left RG32 uploads; cached reads, scheduling flags, upload publication, failures and recovery passed\n";
     }
     catch(const std::exception& e) { std::cerr<<e.what()<<'\n'; return 1; }
 }

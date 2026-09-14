@@ -58,7 +58,8 @@ cv::Mat process(const cv::Mat& input, double alphaThreshold, MethodMenuItems met
 		auto uvFromPixel = [width, height](int x, int y) -> cv::Vec4f
 		{
 			float u = (width > 1) ? static_cast<float>(x) / static_cast<float>(width - 1) : 0.0f;
-			float v = (height > 1) ? static_cast<float>(y) / static_cast<float>(height - 1) : 0.0f;
+			// OpenCV rows increase downward; UV V increases upward from the bottom.
+			float v = (height > 1) ? static_cast<float>(height - 1 - y) / static_cast<float>(height - 1) : 0.0f;
 			return cv::Vec4f(u, v, 0.0f, 1.0f);
 		};
 
