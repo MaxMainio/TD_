@@ -1,0 +1,3 @@
+#pragma once
+// Generated from the project-local Docking.py; no runtime source-file dependency.
+inline constexpr const char* FaceDockingScript = R"FACE_DOCK(@FACE_DOCKING_SCRIPT@)FACE_DOCK";

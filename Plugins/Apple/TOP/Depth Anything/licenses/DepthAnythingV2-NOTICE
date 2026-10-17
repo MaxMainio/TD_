@@ -1,0 +1,18 @@
+Depth Anything V2 Small Core ML models
+
+Original model: Depth Anything V2 by Lihe Yang, Bingyi Kang, Zilong Huang,
+Zhen Zhao, Xiaogang Xu, Jiashi Feng, and Hengshuang Zhao.
+Source: https://github.com/DepthAnything/Depth-Anything-V2
+Paper: https://arxiv.org/abs/2406.09414
+
+Core ML packages supplied by Apple:
+https://developer.apple.com/machine-learning/models/
+https://huggingface.co/apple/coreml-depth-anything-v2-small
+
+The Small models are identified as Apache-2.0 by the upstream README and
+Apple's model card. The accompanying DepthAnythingV2-LICENSE preserves the
+license text. No model weights were modified. The .mlmodelc directories are
+build-generated compilations of the original .mlpackage directories.
+The model download URLs and exact package hashes are in models/catalog.json.
+
+These terms do not describe the Base, Large, Giant, or Depth Pro models.

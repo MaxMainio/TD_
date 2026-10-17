@@ -1,0 +1,3 @@
+#pragma once
+// Embedded project-local helper; no runtime dependency on the source checkout.
+inline constexpr const char* DepthModelHostScript = R"DEPTH_HOST(@DEPTH_MODEL_HOST_SCRIPT@)DEPTH_HOST";

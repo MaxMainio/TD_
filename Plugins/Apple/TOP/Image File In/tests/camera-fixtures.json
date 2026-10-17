@@ -1,0 +1,15 @@
+{
+  "status": "Camera acceptance pending; no private camera images distributed",
+  "record_fields": ["filename", "sha256", "source_or_owner", "permission", "camera", "os", "expected_images", "expected_auxiliaries", "orientation", "profile", "result"],
+  "required_variants": [
+    "Canon CRW / CIFF: real full-resolution raw and Apple-exposed metadata",
+    "Camera DNG and Apple ProRAW: full-resolution default Apple rendering",
+    "iPhone portrait HEIC: native depth or disparity, relative/absolute accuracy and calibration",
+    "iPhone portrait HEIC with each available semantic matte; deliberately absent mattes",
+    "Apple HDR gain map: SDR/HDR color comparison and map alignment",
+    "ISO mono and RGB gain map: source channel count and HDR headroom",
+    "Multi-image and spatial/stereo HEIC: nonzero primary index and left/right roles",
+    "Damaged auxiliary with valid primary image: partial result, no selectable failed output"
+  ],
+  "fixtures": []
+}

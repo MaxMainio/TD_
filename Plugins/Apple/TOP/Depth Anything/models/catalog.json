@@ -1,0 +1,52 @@
+{
+  "source": "https://developer.apple.com/machine-learning/models/",
+  "license": "Apache-2.0",
+  "models": [
+    {
+      "menu": "Smallf16",
+      "package": "DepthAnythingV2SmallF16.mlpackage",
+      "url": "https://ml-assets.apple.com/coreml/models/Image/DepthEstimation/DepthAnything/DepthAnythingV2SmallF16.mlpackage.zip",
+      "archive_sha256": "8e875979ec82fa46f292468a7567a520b2aa07c41008c32141f3396da05a4067",
+      "files": [
+        {
+          "path": "Data/com.apple.CoreML/model.mlmodel",
+          "bytes": 399433,
+          "sha256": "44ac97a3efcfd52113183fb2862ff59cd0368e9ec2e30a90a54980dd11407042"
+        },
+        {
+          "path": "Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 49419072,
+          "sha256": "fa60d9b6a155734f59029ebb882fd54e549bfaee3539c1a9cbd2cbbab64a0fed"
+        },
+        {
+          "path": "Manifest.json",
+          "bytes": 617,
+          "sha256": "2883ae290c48fe916dc5ececac03a7d847fa277165a49ef5652fa1d2b9cb55f7"
+        }
+      ]
+    },
+    {
+      "menu": "Smallf16p6",
+      "package": "DepthAnythingV2SmallF16P6.mlpackage",
+      "url": "https://ml-assets.apple.com/coreml/models/Image/DepthEstimation/DepthAnything/DepthAnythingV2SmallF16P6.mlpackage.zip",
+      "archive_sha256": "0268456a2c388d73bc36ef8e8e2d7ecffbbb6afeb1d73e79030c84cb5e7f3594",
+      "files": [
+        {
+          "path": "Data/com.apple.CoreML/model.mlmodel",
+          "bytes": 416488,
+          "sha256": "ee53b8f7e1682a66857b5a3d54cf04a97d89a98cf7b5979b5d726aaf9c24ad70"
+        },
+        {
+          "path": "Data/com.apple.CoreML/weights/weight.bin",
+          "bytes": 18621888,
+          "sha256": "3e9bcccc9e35ae6f9759551f481a3b77226510bd74536e059ee9780dda618381"
+        },
+        {
+          "path": "Manifest.json",
+          "bytes": 617,
+          "sha256": "70e469c0359c89851bde4cdc1d89bf13fa06d4fccd8907b9b5f744e548ecaadf"
+        }
+      ]
+    }
+  ]
+}
