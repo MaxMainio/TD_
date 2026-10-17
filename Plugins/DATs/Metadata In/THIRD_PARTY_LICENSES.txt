@@ -1,0 +1,26 @@
+TouchDesigner SDK
+The included DAT_CPlusPlusBase.h, CPlusPlus_Common.h and BitMaskFlags.h are copied
+unchanged from TouchDesigner 2025.33230. Their Derivative Shared Use License is
+preserved in each header. Use requires the applicable TouchDesigner license.
+
+nlohmann/json 3.12.0
+Source: https://github.com/nlohmann/json/tree/v3.12.0
+Copyright (c) 2013-2025 Niels Lohmann. MIT license in vendor/LICENSE-json.txt.
+
+ExifTool 13.59
+Source: https://github.com/exiftool/exiftool/tree/13.59
+Copyright 2003-2026 Phil Harvey. Available under the same terms as Perl
+(the Perl Artistic License or GPL). This bundle retains the upstream GPL
+license and complete executable Perl source/modules.
+The dependency preparation script retains the upstream LICENSE and README in
+the bundle's Resources/licenses directory. System Perl is not redistributed.
+
+FFmpeg 8.0.3
+Source: https://ffmpeg.org/releases/ffmpeg-8.0.3.tar.xz
+Copyright the FFmpeg contributors. The bundled ffprobe build disables GPL and
+nonfree components and retains FFmpeg's applicable LGPL licenses. All copying
+notices and LICENSE.md are copied to Resources/licenses. The complete pinned
+source, checksum and build procedure are documented in dependencies.json and
+scripts/prepare-dependencies.py. When distributing compiled binaries, supply
+the corresponding FFmpeg source and build script under the applicable license;
+source-only staging is not authorization to publish a binary release.

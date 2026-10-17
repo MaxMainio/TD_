@@ -34,8 +34,28 @@ static size_t threadCount()
 	return count;
 }
 
+static bool waitForWorkerShutdown(size_t baseline, const char* phase)
+{
+	size_t observed = 0;
+	for (int i = 0; i < 100; ++i)
+	{
+		observed = threadCount();
+		// Mach may briefly include terminated threads after std::thread::join.
+		// A declining count is successful cleanup, not evidence of a leak.
+		if (observed <= baseline)
+			return true;
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+	std::cerr << phase << " left worker threads running (baseline=" << baseline
+		<< ", observed=" << observed << ")\n";
+	return false;
+}
+
 int main()
 {
+	// Sample before creating workers so delayed kernel cleanup from the churn
+	// below cannot inflate the baseline and hide a surviving worker.
+	const size_t baseline = threadCount();
 	// Immediate destruction also exercises the race between startup and wait.
 	for (int i = 0; i < 500; ++i)
 	{
@@ -43,7 +63,8 @@ int main()
 		if (i % 2)
 			std::this_thread::yield();
 	}
-	const size_t baseline = threadCount();
+	if (!waitForWorkerShutdown(baseline, "Immediate destruction"))
+		return 1;
 	for (int i = 0; i < 5; ++i)
 	{
 		BasicFilterTOP node(nullptr, nullptr);
@@ -52,15 +73,8 @@ int main()
 		node.switchToMultiThreaded();
 		// Destroy while multithreaded is still enabled, as when deleting a TOP.
 	}
-	for (int i = 0; i < 100; ++i)
-	{
-		if (threadCount() == baseline)
-		{
-			std::cout << "Worker startup, mode changes, and node deletion passed\n";
-			return 0;
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	}
-	std::cerr << "Node deletion left worker threads running\n";
-	return 1;
+	if (!waitForWorkerShutdown(baseline, "Node deletion"))
+		return 1;
+	std::cout << "Worker startup, mode changes, and node deletion passed\n";
+	return 0;
 }
