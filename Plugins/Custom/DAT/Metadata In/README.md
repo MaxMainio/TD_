@@ -1,5 +1,30 @@
 # MetaData_In
 
+Preserved source snapshot **0.1.1**. [Download the complete source package](metadata-in-0.1.1-source.zip).
+
+This is a packaging conversion of an existing distribution snapshot.
+Its original source contents and recorded acceptance limits are preserved.
+
+## Build this download
+
+Keep README.md, build.sh and the source ZIP together. With Python 3.9+,
+CMake 3.20+ and the plugin prerequisites below installed, run:
+
+```sh
+bash build.sh
+# Include declared automated tests:
+bash build.sh --tests
+```
+
+The launcher verifies the archive, extracts a fresh source copy and builds
+into a new build/ run directory. It prints the bundle and log locations;
+it does not install the bundle. Use --help for host, architecture and
+dependency options, or --extract-only to unpack without building.
+
+The documentation below is also included in the archive. Its manual
+CMake commands and source-file paths apply inside the extracted source
+folder; source-file links here download the archive.
+
 A native TouchDesigner DAT that reads metadata from **one local file** and
 outputs a table. Select a file directly, or reference any operator with a File
 parameter. No wired inputs are required.
@@ -141,8 +166,8 @@ resource directory (default `build/readers`); it must contain every requested
 architecture. `--build-root` moves all dependency downloads/builds/resources to
 another chosen directory. Generated data is ignored and never needed as source.
 
-The [dependency lock](dependencies.json) pins upstream versions, URLs and SHA256
-checksums. The [preparation script](scripts/prepare-dependencies.py) verifies
+The [dependency lock (dependencies.json in source archive)](metadata-in-0.1.1-source.zip) pins upstream versions, URLs and SHA256
+checksums. The [preparation script (scripts/prepare-dependencies.py in source archive)](metadata-in-0.1.1-source.zip) verifies
 archives, builds static FFmpeg libraries and ffprobe locally, bundles ExifTool's
 Perl scripts/modules, and retains upstream licenses. Network, GPL/nonfree
 FFmpeg additions, external library autodetection, encoders, muxers and playlist
@@ -186,7 +211,7 @@ Intel host or working Rosetta.
 Physical Intel validation and an isolated standalone source build remain release
 gates.
 
-To run the host checks, execute [tests/touchdesigner_validate.py](tests/touchdesigner_validate.py)
+To run the host checks, execute [tests/touchdesigner_validate.py (tests/touchdesigner_validate.py in source archive)](metadata-in-0.1.1-source.zip)
 in the Textport, then call `run_validation(plugin_path, output_directory)` using
 absolute paths. It creates a unique validation COMP, yields between frames and
 writes `touchdesigner-results.json`. It exercises the example operator families,
@@ -204,10 +229,10 @@ the entire suite using registered Custom DAT instances.
 The adapter, host resolver, extraction engine, reader adapters and table formatter
 are separate source files. SDK headers are unchanged copies from TouchDesigner
 2025.33230, with their Derivative Shared Use License intact. nlohmann/json 3.12.0
-uses the [MIT license](vendor/LICENSE-json.txt). ExifTool is available under Perl's
+uses the [MIT license (vendor/LICENSE-json.txt in source archive)](metadata-in-0.1.1-source.zip). ExifTool is available under Perl's
 terms (Artistic or GPL); this bundle retains its upstream GPL license and complete
 Perl source. FFmpeg's applicable LGPL notices and pinned source/build information
-are retained. See [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
+are retained. See [THIRD_PARTY_LICENSES.txt (THIRD_PARTY_LICENSES.txt in source archive)](metadata-in-0.1.1-source.zip).
 
 When distributing compiled binaries, provide corresponding FFmpeg source and
 build material as required by its license. The preparation script's retained

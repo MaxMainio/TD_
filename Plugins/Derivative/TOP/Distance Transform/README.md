@@ -1,5 +1,30 @@
 # Distance Transform TOP
 
+Preserved source snapshot **snapshot-6f3219649c4b**. [Download the complete source package](distance-transform-snapshot-6f3219649c4b-source.zip).
+
+This is a packaging conversion of an existing distribution snapshot.
+Its original source contents and recorded acceptance limits are preserved.
+
+## Build this download
+
+Keep README.md, build.sh and the source ZIP together. With Python 3.9+,
+CMake 3.20+ and the plugin prerequisites below installed, run:
+
+```sh
+bash build.sh
+# Include declared automated tests:
+bash build.sh --tests
+```
+
+The launcher verifies the archive, extracts a fresh source copy and builds
+into a new build/ run directory. It prints the bundle and log locations;
+it does not install the bundle. Use --help for host, architecture and
+dependency options, or --extract-only to unpack without building.
+
+The documentation below is also included in the archive. Its manual
+CMake commands and source-file paths apply inside the extracted source
+folder; source-file links here download the archive.
+
 Derivative-modified TOP sample that runs OpenCV distance transform on one selected channel from an input TOP. The TouchDesigner node label is `Distance Transform`, and the tested `opType` is `Distancetransform`.
 
 ## Input and Output

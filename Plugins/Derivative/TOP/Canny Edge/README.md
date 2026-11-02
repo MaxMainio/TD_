@@ -1,5 +1,30 @@
 # Canny Edge TOP
 
+Preserved source snapshot **snapshot-15eacd5c6578**. [Download the complete source package](canny-edge-snapshot-15eacd5c6578-source.zip).
+
+This is a packaging conversion of an existing distribution snapshot.
+Its original source contents and recorded acceptance limits are preserved.
+
+## Build this download
+
+Keep README.md, build.sh and the source ZIP together. With Python 3.9+,
+CMake 3.20+ and the plugin prerequisites below installed, run:
+
+```sh
+bash build.sh
+# Include declared automated tests:
+bash build.sh --tests
+```
+
+The launcher verifies the archive, extracts a fresh source copy and builds
+into a new build/ run directory. It prints the bundle and log locations;
+it does not install the bundle. Use --help for host, architecture and
+dependency options, or --extract-only to unpack without building.
+
+The documentation below is also included in the archive. Its manual
+CMake commands and source-file paths apply inside the extracted source
+folder; source-file links here download the archive.
+
 Derivative-modified TOP sample that converts an input TOP to grayscale and runs OpenCV Canny edge detection. The TouchDesigner node label is `Canny Edge`, and the tested `opType` is `Cannyedge`.
 
 ## Input and Output

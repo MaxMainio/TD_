@@ -1,2 +1,0 @@
-#pragma once
-static constexpr const char* metadataResolverScript = R"MDRESOLVER(@METADATA_RESOLVER_SCRIPT@)MDRESOLVER";

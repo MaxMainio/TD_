@@ -1,2 +1,0 @@
-#pragma once
-static const char* ImageHostScript=R"IMAGESCRIPT(@IMAGE_HOST_SCRIPT@)IMAGESCRIPT";
